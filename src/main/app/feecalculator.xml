@@ -98,6 +98,5 @@ payload map ((payload01 , indexOfPayload01) -> {
 })]]></dw:set-payload>
         </dw:transform-message>
         <file:outbound-endpoint path="src\main\resources\FileWrite" outputPattern="SummaryReport_#[server.dateTime.format(&quot;yyyymmddHHMMSS&quot;)].csv" responseTimeout="10000" doc:name="File"/>
-        <logger level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
