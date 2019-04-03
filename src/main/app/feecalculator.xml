@@ -27,6 +27,7 @@ payload map ((payload01 , indexOfPayload01) -> {
 	"Priority Flag": payload01."Priority Flag"
 })]]></dw:set-payload>
         </dw:transform-message>
+        <logger message="Added logger" level="INFO" doc:name="Logger"/>
         <set-variable variableName="orginalPayload" value="#[payload]" doc:name="Variable"/>
         <foreach doc:name="For Each">
             <logger message="Infor each #[payload]  === In Flow #[flowVars.orginalPayload]" level="INFO" doc:name="Logger"/>
