@@ -1,0 +1,28 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "calculator_csv"
+        }
+    },
+    "outputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "calculator_csv"
+        },
+        "flowVariables": {
+            "orginalPayload": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "calculator_csv"
+            }
+        },
+        "sessionVariables": {
+            "OriPay": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "calculator_csv"
+            }
+        }
+    },
+    "id": "d7fe0846-1d59-4d1f-917c-37744b4dd27f",
+    "version": "5.2.0.0"
+}

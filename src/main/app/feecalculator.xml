@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <file:connector name="File" outputPattern="*.csv"  readFromDirectory="src\main\resources\FileRead" autoDelete="true" streaming="true" validateConnections="true" doc:name="File"/>
+    <flow name="feecalculatorFlow">
+        <file:inbound-endpoint path="src\main\resources\FileRead" connector-ref="File" responseTimeout="10000" doc:name="File"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="d7fe0846-1d59-4d1f-917c-37744b4dd27f">
+            <dw:input-payload doc:sample="sample_data\list_csv.csv" mimeType="application/csv">
+                <dw:reader-property name="separator" value="|"/>
+            </dw:input-payload>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload map ((payload01 , indexOfPayload01) -> {
+	"External Transaction Id": payload01."External Transaction Id",
+	"Client Id": payload01."Client Id",
+	"Security Id": payload01."Security Id",
+	"Transaction Type": payload01."Transaction Type",
+	"Transaction Date": payload01."Transaction Date",
+	"Market Value": payload01."Market Value",
+	"Priority Flag": payload01."Priority Flag"
+})]]></dw:set-payload>
+        </dw:transform-message>
+        <set-variable variableName="orginalPayload" value="#[payload]" doc:name="Variable"/>
+        <foreach doc:name="For Each">
+            <logger message="Infor each #[payload]  === In Flow #[flowVars.orginalPayload]" level="INFO" doc:name="Logger"/>
+            <expression-component doc:name="Expression"><![CDATA[import java.util.*;
+//import com.transactions.calculator.*;
+
+List result= flowVars.orginalPayload;
+Map fee_details=payload;
+Map fee_indi;
+
+String fee="";
+
+//String fee= CalculateProcessingFee.processingFee(fee_details,result,fee_indi);
+
+
+for (int i=0; i<result.size(); i++)
+		{
+			fee_indi=(Map) result.get(i);
+//	System.out.print("In result condition:: "+fee_indi+"\n"+fee_details);
+			if((fee_details.get("Client Id")==fee_indi.get("Client Id") )&&(fee_details.get("Security Id")==fee_indi.get("Security Id"))&&(fee_details.get("Transaction Date")==fee_indi.get("Transaction Date")))
+			{
+				if(((fee_details.get("Transaction Type")=="SELL" )&&(fee_indi.get("Transaction Type")=="BUY"))||((fee_details.get("Transaction Type")=="BUY" )&&(fee_indi.get("Transaction Type")=="SELL")))
+				{
+					//System.out.print("In side condition result Java:: "+result);
+					fee="$10";
+//					break;
+				}
+			}
+		}
+
+		if(fee=="")
+		{
+			if( fee_details.get("Priority Flag").equalsIgnoreCase( "Y"))
+			{
+				fee ="$500";
+			}
+			else if((fee_details.get("Priority Flag").equalsIgnoreCase("N")) &&((fee_details.get("Transaction Type").equalsIgnoreCase("SELL")) ||(fee_details.get("Transaction Type").equalsIgnoreCase("WITHDRAW") )))
+			{
+				fee="$100";
+			}
+			else if((fee_details.get("Priority Flag").equalsIgnoreCase("N")) &&((fee_details.get("Transaction Type").equalsIgnoreCase("BUY")) ||(fee_details.get("Transaction Type").equalsIgnoreCase("DEPOSIT") )))
+			{
+				fee="$50";
+			}
+		}
+
+
+//System.out.println("In Expression:: "+fee);
+fee_details.put("Processing Fee",fee)	;
+
+payload=fee_details;
+
+]]></expression-component>
+        </foreach>
+        <logger message="after for each::: #[payload]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="72f8fe6b-f033-4c33-8c88-7a680238a8ee">
+            <dw:input-payload doc:sample="sample_data\list_csv_1.csv"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/csv header =true
+---
+payload map ((payload01 , indexOfPayload01) -> {
+
+	"Client Id": payload01."Client Id",
+	"Security Id": payload01."Security Id",
+	"Transaction Type": payload01."Transaction Type",
+	"Transaction Date": payload01."Transaction Date",
+	"Priority Flag": payload01."Priority Flag",
+	"Processing Fee": payload01."Processing Fee"
+})]]></dw:set-payload>
+        </dw:transform-message>
+        <file:outbound-endpoint path="src\main\resources\FileWrite" outputPattern="SummaryReport_#[server.dateTime.format(&quot;yyyymmddHHMMSS&quot;)].csv" responseTimeout="10000" doc:name="File"/>
+    </flow>
+</mule>
